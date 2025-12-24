@@ -16,13 +16,17 @@ use virt::CpuidLeaf;
 use x86defs::cpuid::CpuidFunction;
 
 /// The partition privileges that this emulator supports.
+/// NOTE: create_partitions is set to make the VM appear as a root partition
+/// (CPUID 0x40000003 EBX bit 0 = 1), which prevents VM detection tools from
+/// identifying this as a child/guest partition.
 pub const SUPPORTED_PRIVILEGES: HvPartitionPrivilege = HvPartitionPrivilege::new()
     .with_access_partition_reference_counter(true)
     .with_access_hypercall_msrs(true)
     .with_access_vp_index(true)
     .with_access_synic_msrs(true)
     .with_access_synthetic_timer_msrs(true)
-    .with_access_partition_reference_tsc(true);
+    .with_access_partition_reference_tsc(true)
+    .with_create_partitions(true);
 
 /// The hypervisor features that this emulator supports.
 pub const SUPPORTED_FEATURES: HvFeatures = HvFeatures::new()
