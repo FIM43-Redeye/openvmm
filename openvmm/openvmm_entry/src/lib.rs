@@ -9,6 +9,7 @@
 
 mod cli_args;
 mod crash_dump;
+mod host_smbios;
 mod kvp;
 mod meshworker;
 mod serial_io;
@@ -1466,6 +1467,42 @@ async fn vm_config_from_command_line(
                 EfiDiagnosticsLogLevelCli::Info => EfiDiagnosticsLogLevelType::Info,
                 EfiDiagnosticsLogLevelCli::Full => EfiDiagnosticsLogLevelType::Full,
             }
+        },
+        smbios_config: if opt.mirror_host_smbios {
+            match host_smbios::HostSmbiosData::query() {
+                Ok(data) => {
+                    tracing::info!(
+                        "Mirroring host SMBIOS data: manufacturer={}, product={}",
+                        data.system_manufacturer,
+                        data.system_product_name
+                    );
+                    Some(openvmm_defs::config::SmbiosConfig {
+                        system_serial_number: Some(data.system_serial_number).filter(|s| !s.is_empty()),
+                        system_manufacturer: Some(data.system_manufacturer).filter(|s| !s.is_empty()),
+                        system_product_name: Some(data.system_product_name).filter(|s| !s.is_empty()),
+                        system_version: Some(data.system_version).filter(|s| !s.is_empty()),
+                        system_sku_number: Some(data.system_sku_number).filter(|s| !s.is_empty()),
+                        system_family: Some(data.system_family).filter(|s| !s.is_empty()),
+                        system_uuid: data.system_uuid,
+                        baseboard_serial_number: Some(data.baseboard_serial_number).filter(|s| !s.is_empty()),
+                        baseboard_manufacturer: Some(data.baseboard_manufacturer).filter(|s| !s.is_empty()),
+                        baseboard_product: Some(data.baseboard_product).filter(|s| !s.is_empty()),
+                        chassis_serial_number: Some(data.chassis_serial_number).filter(|s| !s.is_empty()),
+                        chassis_asset_tag: Some(data.chassis_asset_tag).filter(|s| !s.is_empty()),
+                        chassis_manufacturer: Some(data.chassis_manufacturer).filter(|s| !s.is_empty()),
+                        bios_vendor: Some(data.bios_vendor).filter(|s| !s.is_empty()),
+                        bios_version: Some(data.bios_version).filter(|s| !s.is_empty()),
+                        processor_manufacturer: Some(data.processor_manufacturer).filter(|s| !s.is_empty()),
+                        processor_version: Some(data.processor_version).filter(|s| !s.is_empty()),
+                    })
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to query host SMBIOS data: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
         },
     };
 

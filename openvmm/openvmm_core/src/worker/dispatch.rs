@@ -209,6 +209,7 @@ impl Manifest {
                 EfiDiagnosticsLogLevelType::Info => LogLevel::make_info(),
                 EfiDiagnosticsLogLevelType::Full => LogLevel::make_full(),
             },
+            smbios_config: config.smbios_config,
         }
     }
 }
@@ -254,6 +255,7 @@ pub struct Manifest {
     rtc_delta_milliseconds: i64,
     automatic_guest_reset: bool,
     efi_diagnostics_log_level: LogLevel,
+    smbios_config: Option<openvmm_defs::config::SmbiosConfig>,
 }
 
 #[derive(Protobuf, SavedStateRoot)]
@@ -1271,22 +1273,43 @@ impl InitializedVm {
                                 })
                             },
                             num_lock_enabled: false,
-                            // TODO: these are all very bogus values, and need to be swapped out with something better
-                            smbios: firmware_pcat::config::SmbiosConstants {
-                                bios_guid: Guid {
-                                    data1: 0xC4066C45,
-                                    data2: 0x503D,
-                                    data3: 0x40E8,
-                                    data4: [0xB1, 0x5C, 0x31, 0x26, 0x4E, 0x5F, 0xE1, 0xD9],
-                                },
-                                system_serial_number: "9583-9572-9874-4843-7295-1653-92".into(),
-                                base_board_serial_number: "9583-9572-9874-4843-7295-1653-92".into(),
-                                chassis_serial_number: "9583-9572-9874-4843-7295-1653-92".into(),
-                                chassis_asset_tag: "9583-9572-9874-4843-7295-1653-92".into(),
-                                bios_lock_string: "00000000000000000000000000000000".into(),
-                                processor_manufacturer: b"\0".to_vec(),
-                                processor_version: b"\0".to_vec(),
-                                cpu_info_bundle: None,
+                            // SMBIOS values - use host-mirrored config if available, otherwise defaults
+                            smbios: {
+                                let smbios_cfg = cfg.smbios_config.as_ref();
+                                firmware_pcat::config::SmbiosConstants {
+                                    bios_guid: Guid {
+                                        data1: 0xC4066C45,
+                                        data2: 0x503D,
+                                        data3: 0x40E8,
+                                        data4: [0xB1, 0x5C, 0x31, 0x26, 0x4E, 0x5F, 0xE1, 0xD9],
+                                    },
+                                    system_serial_number: smbios_cfg
+                                        .and_then(|c| c.system_serial_number.clone())
+                                        .unwrap_or_else(|| "9583-9572-9874-4843-7295-1653-92".to_string())
+                                        .into_bytes(),
+                                    base_board_serial_number: smbios_cfg
+                                        .and_then(|c| c.baseboard_serial_number.clone())
+                                        .unwrap_or_else(|| "9583-9572-9874-4843-7295-1653-92".to_string())
+                                        .into_bytes(),
+                                    chassis_serial_number: smbios_cfg
+                                        .and_then(|c| c.chassis_serial_number.clone())
+                                        .unwrap_or_else(|| "9583-9572-9874-4843-7295-1653-92".to_string())
+                                        .into_bytes(),
+                                    chassis_asset_tag: smbios_cfg
+                                        .and_then(|c| c.chassis_asset_tag.clone())
+                                        .unwrap_or_else(|| "9583-9572-9874-4843-7295-1653-92".to_string())
+                                        .into_bytes(),
+                                    bios_lock_string: "00000000000000000000000000000000".into(),
+                                    processor_manufacturer: smbios_cfg
+                                        .and_then(|c| c.processor_manufacturer.clone())
+                                        .map(|s| s.into_bytes())
+                                        .unwrap_or_else(|| b"\0".to_vec()),
+                                    processor_version: smbios_cfg
+                                        .and_then(|c| c.processor_version.clone())
+                                        .map(|s| s.into_bytes())
+                                        .unwrap_or_else(|| b"\0".to_vec()),
+                                    cpu_info_bundle: None,
+                                }
                             },
                         }
                     },
@@ -3137,6 +3160,7 @@ impl LoadedVm {
             rtc_delta_milliseconds: 0, // TODO
             automatic_guest_reset: self.inner.automatic_guest_reset,
             efi_diagnostics_log_level: Default::default(),
+            smbios_config: None, // SMBIOS config not preserved across restarts
         };
         RestartState {
             hypervisor: self.inner.hypervisor,

@@ -60,6 +60,9 @@ pub struct Config {
     /// allow the guest to reset without notifying the client
     pub automatic_guest_reset: bool,
     pub efi_diagnostics_log_level: EfiDiagnosticsLogLevelType,
+    /// Optional SMBIOS configuration for host mirroring.
+    /// When set, overrides the default synthetic SMBIOS values.
+    pub smbios_config: Option<SmbiosConfig>,
 }
 
 // ARM64 needs a larger low gap.
@@ -454,4 +457,51 @@ pub enum EfiDiagnosticsLogLevelType {
     Info,
     /// All logs
     Full,
+}
+
+/// SMBIOS data configuration for the VM firmware.
+///
+/// When populated, these values override the default/synthetic SMBIOS values
+/// presented to the guest. Used for host SMBIOS mirroring to make the VM
+/// appear as the host hardware.
+#[derive(Debug, Clone, Default, MeshPayload)]
+pub struct SmbiosConfig {
+    /// System serial number (SMBIOS Type 1)
+    pub system_serial_number: Option<String>,
+    /// System manufacturer (SMBIOS Type 1)
+    pub system_manufacturer: Option<String>,
+    /// System product name (SMBIOS Type 1)
+    pub system_product_name: Option<String>,
+    /// System version (SMBIOS Type 1)
+    pub system_version: Option<String>,
+    /// System SKU number (SMBIOS Type 1)
+    pub system_sku_number: Option<String>,
+    /// System family (SMBIOS Type 1)
+    pub system_family: Option<String>,
+    /// System UUID (SMBIOS Type 1)
+    pub system_uuid: Option<[u8; 16]>,
+
+    /// Base board serial number (SMBIOS Type 2)
+    pub baseboard_serial_number: Option<String>,
+    /// Base board manufacturer (SMBIOS Type 2)
+    pub baseboard_manufacturer: Option<String>,
+    /// Base board product (SMBIOS Type 2)
+    pub baseboard_product: Option<String>,
+
+    /// Chassis serial number (SMBIOS Type 3)
+    pub chassis_serial_number: Option<String>,
+    /// Chassis asset tag (SMBIOS Type 3)
+    pub chassis_asset_tag: Option<String>,
+    /// Chassis manufacturer (SMBIOS Type 3)
+    pub chassis_manufacturer: Option<String>,
+
+    /// BIOS vendor (SMBIOS Type 0)
+    pub bios_vendor: Option<String>,
+    /// BIOS version (SMBIOS Type 0)
+    pub bios_version: Option<String>,
+
+    /// Processor manufacturer (SMBIOS Type 4)
+    pub processor_manufacturer: Option<String>,
+    /// Processor version/name (SMBIOS Type 4)
+    pub processor_version: Option<String>,
 }

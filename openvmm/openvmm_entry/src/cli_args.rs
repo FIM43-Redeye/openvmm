@@ -639,6 +639,14 @@ Options:
 "#)]
     #[clap(long, conflicts_with("pcat"))]
     pub pcie_switch: Vec<GenericPcieSwitchCli>,
+
+    /// Mirror host SMBIOS data to make VM appear as host hardware.
+    ///
+    /// When enabled, queries the host's SMBIOS data (manufacturer, product name,
+    /// serial numbers, etc.) and uses it for the VM's firmware, making the VM
+    /// indistinguishable from the host hardware in SMBIOS queries.
+    #[clap(long)]
+    pub mirror_host_smbios: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
